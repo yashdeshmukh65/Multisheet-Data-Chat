@@ -1,6 +1,6 @@
 from langchain_openai import AzureChatOpenAI
-from langchain.prompts import PromptTemplate
-from langchain.schema.output_parser import StrOutputParser
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 import json
 
 class AgentPipeline:

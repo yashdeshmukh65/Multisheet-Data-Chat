@@ -4,5 +4,6 @@ openpyxl
 langchain
 langchain-openai
 langchain-community
+langchain-core
 matplotlib
 python-dotenv
