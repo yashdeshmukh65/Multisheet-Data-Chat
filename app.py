@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import uuid
 from data_loader import load_excel_to_sqlite, get_db_schema
 from sql_executor import execute_sql
 from visualizer import generate_visualization
@@ -20,6 +21,8 @@ if "memory" not in st.session_state:
     st.session_state.memory = Memory()
 if "db_schema" not in st.session_state:
     st.session_state.db_schema = ""
+if "db_path" not in st.session_state:
+    st.session_state.db_path = f"chat_app_{uuid.uuid4().hex}.db"
 
 # Sidebar settings
 with st.sidebar:
@@ -28,7 +31,7 @@ with st.sidebar:
     
     if uploaded_file and st.button("Load File"):
         with st.spinner("Loading file and building database..."):
-            schema = load_excel_to_sqlite(uploaded_file)
+            schema = load_excel_to_sqlite(uploaded_file, st.session_state.db_path)
             st.session_state.db_schema = schema
             st.success("File loaded successfully!")
             with st.expander("Database Schema"):
@@ -71,10 +74,27 @@ else:
                 st.markdown(f"**Generated SQL:**\n```sql\n{sql_query}\n```")
                 
                 with st.spinner("Executing query..."):
-                    success, df = execute_sql(sql_query)
+                    success, df = execute_sql(sql_query, st.session_state.db_path)
                     
                 if not success:
-                    st.error(f"Execution failed: {df}")
+                    st.warning(f"Initial query failed: {df}. Attempting to self-correct...")
+                    with st.spinner("Self-correcting SQL query..."):
+                        # df contains the error message when success is False
+                        fixed_sql, new_chart_suggestion = agent.fix_sql_query(
+                            st.session_state.db_schema, 
+                            prompt, 
+                            sql_query, 
+                            df 
+                        )
+                        if fixed_sql:
+                            st.markdown(f"**Fixed SQL:**\n```sql\n{fixed_sql}\n```")
+                            success, df = execute_sql(fixed_sql, st.session_state.db_path)
+                            sql_query = fixed_sql
+                            if new_chart_suggestion and new_chart_suggestion != "none":
+                                chart_suggestion = new_chart_suggestion
+                                
+                if not success:
+                    st.error(f"Execution failed after self-correction: {df}")
                 else:
                     st.dataframe(df)
                     
