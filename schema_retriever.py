@@ -3,7 +3,7 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import EnsembleRetriever
+
 
 class SchemaRetrieverAgent:
     def __init__(self, schemas_list, openai_api_key=None):
@@ -27,24 +27,26 @@ class SchemaRetrieverAgent:
         # Initialize Retrievers
         # 1. Vector Store Retriever (Semantic Search)
         vectorstore = FAISS.from_documents(documents, embeddings)
-        # Search for top 3 matching tables by meaning
-        vector_retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+        self.vector_retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
         
         # 2. BM25 Retriever (Keyword Search)
-        bm25_retriever = BM25Retriever.from_documents(documents)
-        bm25_retriever.k = 3 # top 3 exact matches
-        
-        # Combine them using an EnsembleRetriever (weights out of 1.0)
-        self.ensemble_retriever = EnsembleRetriever(
-            retrievers=[vector_retriever, bm25_retriever],
-            weights=[0.5, 0.5]
-        )
+        self.bm25_retriever = BM25Retriever.from_documents(documents)
+        self.bm25_retriever.k = 3
         
     def get_relevant_schema(self, query):
         """
         Returns a formatted string containing ONLY the schemas relevant to the query.
         """
-        relevant_docs = self.ensemble_retriever.invoke(query)
+        # Fetch from both
+        relevant_docs_vector = self.vector_retriever.invoke(query)
+        relevant_docs_bm25 = self.bm25_retriever.invoke(query)
+        
+        # Merge uniquely to avoid duplicates
+        unique_docs = {}
+        for doc in relevant_docs_vector + relevant_docs_bm25:
+            if doc.page_content not in unique_docs:
+                unique_docs[doc.page_content] = doc
+                
         # Combine the selected doc contents back into a string context
-        combined_schema = "\n\n".join([doc.page_content for doc in relevant_docs])
+        combined_schema = "\n\n".join(unique_docs.keys())
         return combined_schema
