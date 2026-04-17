@@ -28,7 +28,7 @@ def load_excel_to_sqlite(file_path_or_bytes, db_path):
         schema_info.append(f"Table: {table_name}\nColumns: {columns}")
 
     conn.close()
-    return "\n\n".join(schema_info)
+    return schema_info
 
 def get_db_schema(db_path):
     """
@@ -50,4 +50,4 @@ def get_db_schema(db_path):
         schema_info.append(f"Table: {table_name}\nColumns: {columns}")
         
     conn.close()
-    return "\n\n".join(schema_info)
+    return schema_info

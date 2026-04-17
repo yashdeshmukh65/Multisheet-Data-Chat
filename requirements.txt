@@ -7,3 +7,6 @@ langchain-community
 langchain-core
 matplotlib
 python-dotenv
+faiss-cpu
+rank_bm25
+tiktoken

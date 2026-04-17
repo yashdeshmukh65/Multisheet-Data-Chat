@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from memory import Memory
 from agents import AgentPipeline
+from schema_retriever import SchemaRetrieverAgent
 
 st.set_page_config(page_title="Excel Data Chat", layout="wide")
 
@@ -31,11 +32,12 @@ with st.sidebar:
     
     if uploaded_file and st.button("Load File"):
         with st.spinner("Loading file and building database..."):
-            schema = load_excel_to_sqlite(uploaded_file, st.session_state.db_path)
-            st.session_state.db_schema = schema
+            schema_list = load_excel_to_sqlite(uploaded_file, st.session_state.db_path)
+            st.session_state.db_schema = schema_list
+            st.session_state.retriever = SchemaRetrieverAgent(schema_list)
             st.success("File loaded successfully!")
             with st.expander("Database Schema"):
-                st.text(schema)
+                st.text("\n\n".join(schema_list))
 
 # Main Chat Interface
 if not st.session_state.db_schema:
@@ -65,8 +67,11 @@ else:
             agent = AgentPipeline(api_key, endpoint, api_version, deployment_model)
             context = st.session_state.memory.get_context_string()
             
+            with st.spinner("Retrieving relevant schema..."):
+                relevant_schema = st.session_state.retriever.get_relevant_schema(prompt)
+                
             with st.spinner("Generating SQL query..."):
-                sql_query, chart_suggestion = agent.run_query(st.session_state.db_schema, prompt, context)
+                sql_query, chart_suggestion = agent.run_query(relevant_schema, prompt, context)
             
             if not sql_query:
                 st.error("Could not generate a valid SQL query.")
@@ -81,7 +86,7 @@ else:
                     with st.spinner("Self-correcting SQL query..."):
                         # df contains the error message when success is False
                         fixed_sql, new_chart_suggestion = agent.fix_sql_query(
-                            st.session_state.db_schema, 
+                            relevant_schema, 
                             prompt, 
                             sql_query, 
                             df 
