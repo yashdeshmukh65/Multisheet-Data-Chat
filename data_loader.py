@@ -1,6 +1,7 @@
 import pandas as pd
 import sqlite3
 import os
+import re
 
 def load_excel_to_sqlite(file_path_or_bytes, db_path):
     """
@@ -9,16 +10,17 @@ def load_excel_to_sqlite(file_path_or_bytes, db_path):
     """
     conn = sqlite3.connect(db_path)
     
-    # Read all sheets
-    xls = pd.read_excel(file_path_or_bytes, sheet_name=None, engine='openpyxl')
+    # Read all sheets (removed hardcoded openpyxl engine to allow auto-detection)
+    xls = pd.read_excel(file_path_or_bytes, sheet_name=None)
     schema_info = []
     
     for sheet_name, df in xls.items():
-        # Sanitize table names (no spaces, no minus signs)
-        table_name = str(sheet_name).replace(" ", "_").replace("-", "_")
+        # Sanitize table names (only alphanumeric and underscores)
+        table_name = re.sub(r'\W+', '_', str(sheet_name)).strip('_')
+        if not table_name: table_name = "sheet_idx"
         
-        # Sanitize column names
-        df.columns = [str(c).replace(" ", "_").replace("-", "_") for c in df.columns]
+        # Sanitize column names (only alphanumeric and underscores)
+        df.columns = [re.sub(r'\W+', '_', str(c)).strip('_') for c in df.columns]
         
         # Save to sqlite
         df.to_sql(table_name, conn, if_exists="replace", index=False)

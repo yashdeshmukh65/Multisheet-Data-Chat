@@ -55,11 +55,11 @@ class AgentPipeline:
                 "context": context
             })
             
-            # clean json if formatted with markdown
-            if response.startswith("```json"):
-                response = response[7:]
-            if response.endswith("```"):
-                response = response[:-3]
+            # clean json by extracting substring between first { and last }
+            start = response.find("{")
+            end = response.rfind("}")
+            if start != -1 and end != -1:
+                response = response[start:end+1]
                 
             parsed = json.loads(response.strip())
             return parsed.get("sql", ""), parsed.get("chart_suggestion", "none")
@@ -114,11 +114,11 @@ class AgentPipeline:
                 "error_message": error_message
             })
             
-            # clean json if formatted with markdown
-            if response.startswith("```json"):
-                response = response[7:]
-            if response.endswith("```"):
-                response = response[:-3]
+            # clean json by extracting substring between first { and last }
+            start = response.find("{")
+            end = response.rfind("}")
+            if start != -1 and end != -1:
+                response = response[start:end+1]
                 
             parsed = json.loads(response.strip())
             return parsed.get("sql", ""), parsed.get("chart_suggestion", "none")

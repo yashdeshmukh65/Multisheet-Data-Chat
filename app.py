@@ -28,7 +28,7 @@ if "db_path" not in st.session_state:
 # Sidebar settings
 with st.sidebar:
     st.header("Upload Data")
-    uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx", "xls"])
+    uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
     
     if uploaded_file and st.button("Load File"):
         with st.spinner("Loading file and building database..."):
@@ -69,6 +69,10 @@ else:
             
             with st.spinner("Retrieving relevant schema..."):
                 relevant_schema = st.session_state.retriever.get_relevant_schema(prompt)
+                
+            with st.expander("Show Retrieved Schema Context"):
+                st.markdown("**RAG grabbed the following specific tables based on your query:**")
+                st.text(relevant_schema)
                 
             with st.spinner("Generating SQL query..."):
                 sql_query, chart_suggestion = agent.run_query(relevant_schema, prompt, context)

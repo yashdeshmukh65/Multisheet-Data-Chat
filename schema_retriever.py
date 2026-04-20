@@ -1,12 +1,11 @@
 import os
 from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import AzureOpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.retrievers import BM25Retriever
 
-
 class SchemaRetrieverAgent:
-    def __init__(self, schemas_list, openai_api_key=None):
+    def __init__(self, schemas_list):
         """
         Initializes the Ensemble Retriever (FAISS + BM25) for database schema strings.
         schemas_list: List of strings, where each string is a table's schema.
@@ -15,13 +14,18 @@ class SchemaRetrieverAgent:
         documents = [Document(page_content=schema) for schema in schemas_list]
         
         # Initialize Embeddings
-        api_key = openai_api_key or os.environ.get("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY must be provided for schema embeddings.")
+        api_key = os.environ.get("AZURE_OPENAI_API_KEY")
+        azure_endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
+        
+        if not api_key or not azure_endpoint:
+            raise ValueError("AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT must be provided for schema embeddings.")
             
-        embeddings = OpenAIEmbeddings(
+        embeddings = AzureOpenAIEmbeddings(
             api_key=api_key,
-            model="text-embedding-3-small"
+            azure_endpoint=azure_endpoint,
+            api_version="2023-05-15",
+            # Azure Embedding deployment name may vary, adjust if needed (e.g. text-embedding-ada-002)
+            azure_deployment="text-embedding-ada-002"
         )
         
         # Initialize Retrievers

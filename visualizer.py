@@ -32,7 +32,8 @@ def generate_visualization(df, chart_suggestion):
                 
         elif 'pie' in chart_type:
             y_col = y_cols[0] # Pie charts typically only take one value column
-            ax.pie(df[y_col], labels=df[x_col], autopct='%1.1f%%', startangle=90)
+            # Use .abs() to prevent ValueError crashes if LLM suggests a pie chart for data with negative values
+            ax.pie(df[y_col].abs(), labels=df[x_col], autopct='%1.1f%%', startangle=90)
             ax.set_title(f"Distribution by {x_col}")
             
         else: # Default to Bar Chart
