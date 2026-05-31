@@ -5,17 +5,13 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.retrievers import BM25Retriever
 
 class SchemaRetrieverAgent:
-    def __init__(self, schemas_list):
+    def __init__(self, schemas_list, api_key, azure_endpoint):
         """
         Initializes the Ensemble Retriever (FAISS + BM25) for database schema strings.
         schemas_list: List of strings, where each string is a table's schema.
         """
         # Build Documents
         documents = [Document(page_content=schema) for schema in schemas_list]
-        
-        # Initialize Embeddings
-        api_key = os.environ.get("AZURE_OPENAI_API_KEY")
-        azure_endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
         
         if not api_key or not azure_endpoint:
             raise ValueError("AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT must be provided for schema embeddings.")

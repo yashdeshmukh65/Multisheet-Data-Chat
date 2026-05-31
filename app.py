@@ -27,17 +27,24 @@ if "db_path" not in st.session_state:
 
 # Sidebar settings
 with st.sidebar:
+    st.header("Azure OpenAI Credentials")
+    st.session_state.api_key = st.text_input("Azure OpenAI API Key", type="password", value=st.session_state.get("api_key", ""))
+    st.session_state.endpoint = st.text_input("Azure OpenAI Endpoint", value=st.session_state.get("endpoint", ""))
+    
     st.header("Upload Data")
     uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
     
     if uploaded_file and st.button("Load File"):
-        with st.spinner("Loading file and building database..."):
-            schema_list = load_excel_to_sqlite(uploaded_file, st.session_state.db_path)
-            st.session_state.db_schema = schema_list
-            st.session_state.retriever = SchemaRetrieverAgent(schema_list)
-            st.success("File loaded successfully!")
-            with st.expander("Database Schema"):
-                st.text("\n\n".join(schema_list))
+        if not st.session_state.api_key or not st.session_state.endpoint:
+            st.error("Please enter Azure OpenAI credentials above.")
+        else:
+            with st.spinner("Loading file and building database..."):
+                schema_list = load_excel_to_sqlite(uploaded_file, st.session_state.db_path)
+                st.session_state.db_schema = schema_list
+                st.session_state.retriever = SchemaRetrieverAgent(schema_list, st.session_state.api_key, st.session_state.endpoint)
+                st.success("File loaded successfully!")
+                with st.expander("Database Schema"):
+                    st.text("\n\n".join(schema_list))
 
 # Main Chat Interface
 if not st.session_state.db_schema:
@@ -58,9 +65,12 @@ else:
             st.markdown(prompt)
             
         with st.chat_message("assistant"):
-            # Load Azure configurations from .env
-            api_key = os.environ.get("AZURE_OPENAI_API_KEY", "")
-            endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
+            if not st.session_state.get("api_key") or not st.session_state.get("endpoint"):
+                st.error("Please enter Azure OpenAI credentials in the sidebar.")
+                st.stop()
+                
+            api_key = st.session_state.api_key
+            endpoint = st.session_state.endpoint
             api_version = "2023-05-15"
             deployment_model = "gpt-4"
             
